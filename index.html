@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102b2d">
+  <title>First Fault · ESP-IDF build log analyzer</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <header><div class="bar"><strong class="brand"><span aria-hidden="true" class="mark">⌁</span> First Fault</strong><span class="platform">ESP-IDF / BUILD TOOLS</span></div></header>
+  <main>
+    <h1>Build log analyzer</h1>
+    <p class="intro">Find the first compiler or linker error and see what to check next.</p>
+    <div class="workbench">
+      <section class="editor">
+        <div class="heading"><h2><label for="log">Build output</label></h2><span id="count" class="meta"></span></div>
+        <div class="console"><div class="terminal-title">idf.py build</div><textarea id="log" spellcheck="false" autocapitalize="off" wrap="off" placeholder="Paste your ESP-IDF build output here"></textarea></div>
+        <div class="tools"><div><label for="sample">Sample log</label><select id="sample"></select></div><button id="analyze">Analyze log</button></div>
+      </section>
+      <section class="result" aria-live="polite">
+        <div class="heading"><h2>First diagnostic</h2><span id="stage" class="stage"></span></div>
+        <div id="empty" hidden></div>
+        <div id="finding">
+          <div class="detail"><span class="meta" id="source-line"></span><h3 id="message"></h3></div>
+          <dl><div><dt>Source file</dt><dd id="file"></dd></div><div><dt>Line</dt><dd id="line"></dd></div><div><dt>Column</dt><dd id="column"></dd></div></dl>
+          <div class="check"><h4>Next check</h4><p id="check"></p></div>
+          <details><summary>Show matching log line</summary><pre id="evidence"></pre></details>
+        </div>
+      </section>
+    </div>
+    <section class="ai"><div><h2>Gemini explanation</h2><p>Hybrid mode can send the diagnostic message to Firebase AI Logic when the on-device model is unavailable.</p></div>
+      <div class="ai-tools"><label for="mode">Inference mode</label><select id="mode"><option value="hybrid">On-device + cloud fallback</option><option value="device">On-device only</option><option value="cloud">Cloud only</option></select><button id="explain" disabled>Explain error</button></div>
+      <div role="status" id="ai-output"></div>
+    </section>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body></html>
