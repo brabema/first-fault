@@ -38,6 +38,8 @@ The parser scans emitted lines in order. Parallel builds can interleave diagnost
 
 ## Hackathon demo
 
+Open the [public demo](https://brabema.github.io/first-fault/), select **Missing header**, and click **Explain error** with **On-device + cloud fallback** selected. In a browser where the local model is unavailable, a successful response shows **Cloud · Gemini**. The hosted demo uses reCAPTCHA Enterprise for App Check.
+
 The [demo video script](DEMO-SCRIPT.md) shows the same Missing header sample running with Gemini Nano in desktop Chrome and with automatic cloud fallback. The [project description](SUBMISSION.md) summarizes both verified runs.
 
 License: MIT.
