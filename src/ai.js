@@ -1,19 +1,24 @@
 import { initializeApp } from "firebase/app";
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+import { CustomProvider, initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { getAI, getGenerativeModel, GoogleAIBackend, InferenceMode, InferenceSource } from "firebase/ai";
 
-export function createExplainer(env) {
+export function createExplainer(env, useDebugAppCheck) {
   const app = initializeApp({
     apiKey: env.VITE_FIREBASE_API_KEY,
     projectId: env.VITE_FIREBASE_PROJECT_ID,
     appId: env.VITE_FIREBASE_APP_ID
   });
-  if (env.DEV && ["localhost", "127.0.0.1"].includes(location.hostname) && env.VITE_LOCAL_APPCHECK_DEBUG === "true") {
+  if (useDebugAppCheck) {
     self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
   }
+  // The SDK exchanges its browser-generated token in debug mode. The custom
+  // provider satisfies the SDK's provider interface without loading reCAPTCHA.
+  const provider = useDebugAppCheck
+    ? new CustomProvider({ getToken: async () => { throw new Error("App Check debug mode is inactive."); } })
+    : new ReCaptchaEnterpriseProvider(env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY);
   initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider(env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY),
-    isTokenAutoRefreshEnabled: true
+    provider,
+    isTokenAutoRefreshEnabled: !useDebugAppCheck
   });
   const ai = getAI(app, { backend: new GoogleAIBackend() });
   const modes = {

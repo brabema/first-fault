@@ -3,7 +3,10 @@ import { samples } from "./samples.js";
 
 const $ = id => document.getElementById(id);
 const env = import.meta.env;
-const configured = [env.VITE_FIREBASE_API_KEY, env.VITE_FIREBASE_PROJECT_ID, env.VITE_FIREBASE_APP_ID, env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY].every(Boolean);
+const useDebugAppCheck = env.DEV && env.VITE_LOCAL_APPCHECK_DEBUG === "true"
+  && ["localhost", "127.0.0.1"].includes(location.hostname);
+const configured = [env.VITE_FIREBASE_API_KEY, env.VITE_FIREBASE_PROJECT_ID, env.VITE_FIREBASE_APP_ID].every(Boolean)
+  && (useDebugAppCheck || Boolean(env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY));
 let diagnostic, explain, request = 0;
 let setup = configured ? "Connecting to Firebase…" : "Local analysis is ready. Configure Firebase and App Check to enable Gemini.";
 function resetExplanation() {
@@ -58,7 +61,7 @@ $("explain").onclick = async () => {
     const result = await explain(diagnostic, $("mode").value);
     if (current === request) $("ai-output").textContent = result;
   } catch (error) {
-    if (current === request) $("ai-output").textContent = "Gemini could not complete the request. " + (error.code || error.message || "Check model availability and App Check.");
+    if (current === request) $("ai-output").textContent = "Gemini could not complete the request. " + (error.message || error.code || "Check model availability and App Check.");
   } finally {
     if (current === request) $("explain").disabled = false;
   }
@@ -67,7 +70,7 @@ $("sample").value = "0";
 $("sample").onchange();
 if (configured) {
   import("./ai.js").then(({ createExplainer }) => {
-    explain = createExplainer(env);
+    explain = createExplainer(env, useDebugAppCheck);
     setup = "Ready. Explain error will use the selected inference mode.";
   }).catch(() => {
     setup = "Firebase setup failed. Check the web app configuration and reload.";
