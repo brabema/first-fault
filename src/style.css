@@ -46,5 +46,9 @@ pre { white-space: pre-wrap; }
 .ai p { margin-top: 3px; color: #4d625e; }
 .ai-tools button { margin-left: 5px; }
 #ai-output { grid-column: 1 / -1; color: #3d5650; border-top: 1px solid var(--border); padding-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+#runtime-meta { margin: -10px 0 16px; overflow-wrap: anywhere; }
+#context-panel { grid-column: 1 / -1; }
+#context-panel label { display: block; font-size: .89rem; font-weight: 600; margin-bottom: 4px; }
+#build-context { height: auto; min-height: 88px; color: #172f31; background: #f6f9f7; border: 1px solid var(--border); border-radius: 6px; }
 @media (max-width: 850px) { .workbench, .ai { grid-template-columns: 1fr; } }
 @media (max-width: 450px) { .platform { font-size: .70rem; } .ai-tools button { display: block; margin: 10px 0 0; } }

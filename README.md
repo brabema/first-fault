@@ -1,8 +1,8 @@
 # First Fault
 
-First Fault helps ESP-IDF developers find where a failed build first reports a compiler or linker error. Paste the terminal output to see the diagnostic, its position in the log, and the source location when the toolchain supplies one. Open the matching log line to verify the finding. A built-in next check helps even without a model.
+First Fault helps ESP-IDF developers find the first recognized compiler error, linker error, or runtime failure. Paste output from `idf.py build` or `idf.py monitor` to see the diagnostic, its position in the log, and the source location when available. A built-in next check helps even without a model.
 
-With Firebase configured, **Explain error** sends the build stage and up to 1,600 characters of the diagnostic message through Firebase AI Logic. Hybrid mode prefers Gemini Nano in Chrome and falls back to a cloud model when the local model is unavailable. The response label comes from the SDK. On-device-only and cloud-only modes let a reviewer exercise each route explicitly. The parser owns all location fields.
+With Firebase configured, **Explain error** sends bounded diagnostic data through Firebase AI Logic. Hybrid mode prefers Gemini Nano in Chrome and falls back to a cloud model when the local model is unavailable. The response label comes from the SDK. For runtime failures, Gemini receives the available decoded frames, build metadata and optional build context, then proposes a change to try and a way to verify it. The parser owns all location fields.
 
 ## Run locally
 
@@ -14,7 +14,7 @@ npm test
 npm run dev
 ```
 
-Open the local URL printed by Vite. The four sample logs and paste workflow work without a Firebase project. For a deployable static build run `npm run build` and serve the resulting `dist/` over HTTPS. Run `npm run preview` to inspect that build locally.
+Open the local URL printed by Vite. The sample logs and paste workflow work without a Firebase project. For a deployable static build run `npm run build` and serve the resulting `dist/` over HTTPS. Run `npm run preview` to inspect that build locally.
 
 ## Connect Gemini
 
@@ -33,8 +33,10 @@ Open the local URL printed by Vite. The four sample logs and paste workflow work
 | Unresolved symbol | Linker cannot resolve `sensor_bus_init` | `/workspace/main/main.c`, line 24 |
 | Memory overflow | IRAM region exceeds capacity by 288 bytes | Unreported |
 | Successful build | No recognized diagnostic | — |
+| LoadProhibited panic | Invalid memory read with fault address `0x00000000` | `/workspace/main/sensor_bus.c`, line 47 |
+| Task watchdog | Task watchdog timeout with the logged running task | `/workspace/main/sensor.c`, line 84 |
 
-The parser scans emitted lines in order. Parallel builds can interleave diagnostics. A summary-only log or an unrecognized toolchain format yields “No recognized compiler or linker diagnostic.” That result alone does not establish that a build succeeded.
+The parser scans emitted lines in order. Parallel builds can interleave diagnostics. For runtime failures, it uses explicit source positions or decoded backtrace frames in the monitor output. For an address-only trace, run IDF Monitor with the ELF that matches the flashed build, then paste the decoded output. Add relevant board settings, `sdkconfig` entries or source snippets in **Build context**. A “No recognized build or runtime failure” result can also mean that the output is incomplete. [IDF Monitor address decoding](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/tools/idf-monitor.html#automatic-address-decoding)
 
 ## Hackathon demo
 

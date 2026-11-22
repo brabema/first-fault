@@ -1,3 +1,5 @@
+import { isRuntimeDiagnostic, runtimeDiagnostic, runtimeNextCheck } from "./runtime.js";
+
 const position = /^(.*?):(\d+)(?::(\d+))?:\s*(.*)$/;
 const linkerPrefix = /^(?:.*[\\/])?(?:[\w.+-]+-)?(?:ld(?:\.bfd|\.lld)?|lld)(?:\.exe)?:\s*/i;
 const linkerMessage = /^(?:undefined reference to\b|multiple definition of\b|cannot find\b|cannot open\b|region\b.*overflowed by\b|section\b.*will not fit\b|relocation truncated\b)/i;
@@ -32,16 +34,18 @@ function parseLine(text) {
 }
 
 export function firstDiagnostic(log) {
-  const lines = log.split(/\r\n?|\n/);
-  for (const [index, raw] of lines.entries()) {
-    const evidence = raw.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").trim();
+  const lines = log.split(/\r\n?|\n/).map(line => line.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").trim());
+  for (const [index, evidence] of lines.entries()) {
+    if (isRuntimeDiagnostic(evidence)) return runtimeDiagnostic(lines, index);
     const diagnostic = parseLine(evidence);
     if (diagnostic) return { ...diagnostic, logLine: index + 1, evidence };
   }
   return null;
 }
 
-export function nextCheck({ stage, message }) {
+export function nextCheck(diagnostic) {
+  const { stage, message } = diagnostic;
+  if (stage === "Runtime") return runtimeNextCheck(diagnostic);
   if (/no such file or directory|file not found/i.test(message))
     return "Check which component provides the missing file and whether the consuming component declares that dependency in CMakeLists.txt.";
   if (/undefined reference/i.test(message))

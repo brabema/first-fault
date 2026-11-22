@@ -16,16 +16,33 @@ function resetExplanation() {
 }
 function show(d, emptyText) {
   diagnostic = d;
+  const runtime = d?.stage === "Runtime";
   $("empty").hidden = !!d;
   $("empty").textContent = emptyText;
   $("finding").hidden = !d;
   $("stage").textContent = d?.stage ?? "";
+  $("runtime-meta").hidden = !runtime;
+  $("runtime-details").hidden = !runtime;
+  $("context-panel").hidden = !runtime;
   if (d) {
-    $("source-line").textContent = "BUILD OUTPUT · LINE " + d.logLine;
+    $("source-line").textContent = (runtime ? "RUNTIME LOG" : "BUILD OUTPUT") + " · LINE " + d.logLine;
     for (const key of ["message", "file", "line", "column", "evidence"]) {
       $(key).textContent = d[key] ?? "Unreported";
     }
     $("check").textContent = nextCheck(d);
+  }
+  if (runtime) {
+    const facts = [
+      d.core !== null && "Core " + d.core, d.task && "Logged task " + d.task,
+      d.pc && "PC " + d.pc, d.faultAddress && "Fault address " + d.faultAddress
+    ].filter(Boolean);
+    $("runtime-meta").textContent = facts.join(" · ");
+    $("runtime-meta").hidden = facts.length === 0;
+    const frames = d.frames.map(frame => `${frame.function} at ${frame.file}:${frame.line}`);
+    const build = Object.entries(d.build).map(([key, value]) => `${key}: ${value}`);
+    $("runtime-evidence").textContent = [d.backtrace, ...frames, ...build].filter(Boolean).join("\n")
+      || "No backtrace or build metadata in this excerpt.";
+    $("runtime-details").open = false;
   }
   resetExplanation();
 }
@@ -36,29 +53,33 @@ function count() {
 function analyze() {
   const log = $("log").value;
   count();
-  show(firstDiagnostic(log), log.trim() ? "No recognized compiler or linker diagnostic in this output." : "Paste a build log or choose a sample.");
+  show(firstDiagnostic(log), log.trim() ? "No recognized build or runtime failure in this output." : "Paste build or monitor output, or choose a sample.");
 }
 $("sample").add(new Option("Choose a sample", ""));
 samples.forEach((sample, i) => $("sample").add(new Option(sample.title, i)));
 $("sample").onchange = () => {
   if ($("sample").value === "") return;
-  $("log").value = samples[Number($("sample").value)].log;
+  const sample = samples[Number($("sample").value)];
+  $("log").value = sample.log;
+  $("build-context").value = sample.buildContext ?? "";
   analyze();
 };
 $("log").oninput = () => {
+  if ($("sample").value !== "") $("build-context").value = "";
   $("sample").value = "";
   count();
   show(null, "Run Analyze log to inspect the edited output.");
 };
 $("analyze").onclick = analyze;
 $("mode").onchange = resetExplanation;
+$("build-context").oninput = resetExplanation;
 $("explain").onclick = async () => {
   if (!diagnostic || !explain) return;
   const current = ++request;
   $("explain").disabled = true;
   $("ai-output").textContent = "Waiting for Gemini…";
   try {
-    const result = await explain(diagnostic, $("mode").value);
+    const result = await explain(diagnostic, $("mode").value, $("build-context").value);
     if (current === request) $("ai-output").textContent = result;
   } catch (error) {
     if (current === request) $("ai-output").textContent = "Gemini could not complete the request. " + (error.message || error.code || "Check model availability and App Check.");
