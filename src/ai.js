@@ -19,7 +19,9 @@ export function createExplainer(env, useDebugAppCheck) {
     : new ReCaptchaEnterpriseProvider(env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY);
   initializeAppCheck(app, {
     provider,
-    isTokenAutoRefreshEnabled: !useDebugAppCheck
+    // The AI SDK requests a token before cloud inference. Avoid background
+    // challenges and retries on idle tabs and on-device-only sessions.
+    isTokenAutoRefreshEnabled: false
   });
   const ai = getAI(app, { backend: new GoogleAIBackend() });
   const modes = {
