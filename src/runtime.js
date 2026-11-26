@@ -5,6 +5,7 @@ const decodedFrame = /^(?:0x[\da-f]+:\s*|\(inlined by\)\s*)(.+?)\s+at\s+(.+?):(\
 const buildInfoLine = /^(?:[IWE]\s+\(\d+\)\s+(?:app_init|cpu_start|boot(?:\.[\w.]+)?):\s*)?(Project name|App version|ESP-IDF|ELF file SHA256|IDF_TARGET|Build type)\s*[:=]\s*(.+)$/i;
 const reboot = /^(?:Rebooting\.\.\.|rst:|ESP-ROM:|ets \w{3} )/i;
 const firstTraceAddress = /^(?:Backtrace:\s*)?(0x[\da-f]+)(?::0x[\da-f]+)?/i;
+const pcRegister = /\b(?:M?EPC|PC)(?:\s*:\s*|\s+)(0x[\da-f]+)/i;
 
 export function isRuntimeDiagnostic(line) {
   return runtimeHead.test(line);
@@ -25,12 +26,14 @@ export function runtimeDiagnostic(lines, index) {
   let location = evidence.match(assertionLocation);
   let backtrace = "";
   let faultAddress = null;
+  let pc = evidence.match(pcRegister)?.[1] ?? null;
   let task = evidence.match(/\bstack overflow in task\s+(.+?)\s+has been detected/i)?.[1] ?? null;
   const frames = [];
   for (const line of lines.slice(index + 1, index + 81)) {
     if (reboot.test(line) || (isRuntimeDiagnostic(line) && !/^abort\(\) was called/i.test(line))) break;
     location ??= line.match(errorCheckLocation);
     if (!backtrace && /^(?:Backtrace:|Stack trace:)/i.test(line)) backtrace = line.slice(0, 900);
+    pc ??= line.match(pcRegister)?.[1] ?? null;
     faultAddress ??= line.match(/\b(?:EXCVADDR|MTVAL)\s*:\s*(0x[\da-f]+)/i)?.[1] ?? null;
     task ??= line.match(/\bCPU\s+\d+:\s*([^\s,]+)/i)?.[1] ?? null;
     const frame = line.match(decodedFrame);
@@ -47,7 +50,7 @@ export function runtimeDiagnostic(lines, index) {
     column: null,
     core: evidence.match(/\bcore\s+(\d+)/i)?.[1] ?? null,
     task,
-    pc: (backtrace.replace(/^Stack trace:\s*/i, "").match(firstTraceAddress) ?? evidence.match(/\bPC\s+(0x[\da-f]+)/i))?.[1] ?? null,
+    pc: backtrace.replace(/^Stack trace:\s*/i, "").match(firstTraceAddress)?.[1] ?? pc,
     faultAddress,
     backtrace,
     frames,

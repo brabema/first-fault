@@ -76,13 +76,20 @@ $("build-context").oninput = resetExplanation;
 $("explain").onclick = async () => {
   if (!diagnostic || !explain) return;
   const current = ++request;
+  const mode = $("mode").value;
   $("explain").disabled = true;
-  $("ai-output").textContent = "Waiting for Gemini…";
+  $("ai-output").textContent = mode === "device"
+    ? "Waiting for on-device Gemini. The first model download may take several minutes."
+    : "Waiting for Gemini…";
   try {
-    const result = await explain(diagnostic, $("mode").value, $("build-context").value);
+    const result = await explain(diagnostic, mode, $("build-context").value);
     if (current === request) $("ai-output").textContent = result;
   } catch (error) {
-    if (current === request) $("ai-output").textContent = "Gemini could not complete the request. " + (error.message || error.code || "Check model availability and App Check.");
+    if (current === request) {
+      $("ai-output").textContent = mode === "device" && error.code === "AI/api-not-enabled"
+        ? "Gemini Nano is unavailable in this browser or on this device. Try an up-to-date desktop Chrome on a compatible device, or select On-device + cloud fallback and click Explain error again."
+        : "Gemini could not complete the request. " + (error.message || error.code || "Check model availability and App Check.");
+    }
   } finally {
     if (current === request) $("explain").disabled = false;
   }

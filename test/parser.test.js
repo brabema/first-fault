@@ -67,6 +67,19 @@ test("assert uses the explicit location and keeps its abort backtrace", () => {
   assert.equal(panic.frames.length, 1);
 });
 
+test("RISC-V register dump preserves the instruction address without fabricating a source line", () => {
+  const panic = firstDiagnostic([
+    "Guru Meditation Error: Core 0 panic'ed (Load access fault). Exception was unhandled.",
+    "MEPC:0x42001123  RA:0x42001234  SP:0x3fc8f000",
+    "MTVAL: 0x00000000"
+  ].join("\n"));
+  assert.equal(panic.pc, "0x42001123");
+  assert.equal(panic.faultAddress, "0x00000000");
+  assert.equal(panic.file, null);
+  assert.equal(panic.line, null);
+  assert.match(nextCheck(panic), /IDF Monitor.*ELF that matches/);
+});
+
 test("build diagnostic prompt stays independent of runtime context", () => {
   const prompt = diagnosticPrompt(firstDiagnostic(samples[0].log), "Unrelated runtime context");
   assert.match(prompt, /sensor_bus\.h/);
